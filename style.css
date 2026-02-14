@@ -19,8 +19,7 @@
 body {
     background-color: var(--bg-dark);
     color: var(--text-light);
-    min-height: 100vh;
-    width: 100%;
+    height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -41,13 +40,8 @@ body {
 }
 
 @keyframes rotate {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 /* Glassmorphism Card */
@@ -56,8 +50,6 @@ body {
     width: 100%;
     max-width: 450px;
     text-align: center;
-    margin: 0 auto;
-    /* Ensure centering if flexbox fails */
 }
 
 .card.glass {
@@ -117,20 +109,9 @@ p {
 }
 
 @keyframes pulse-dot {
-    0% {
-        transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7);
-    }
-
-    70% {
-        transform: scale(1);
-        box-shadow: 0 0 0 10px rgba(0, 255, 136, 0);
-    }
-
-    100% {
-        transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(0, 255, 136, 0);
-    }
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0, 255, 136, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
 }
 
 /* Button */
@@ -158,17 +139,9 @@ p {
 }
 
 @keyframes pulse-button {
-    0% {
-        transform: scale(1);
-    }
-
-    50% {
-        transform: scale(1.02);
-    }
-
-    100% {
-        transform: scale(1);
-    }
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
 }
 
 /* Footer */
@@ -198,11 +171,6 @@ p {
 
 /* Mobile Adjustments */
 @media (max-width: 480px) {
-    h1 {
-        font-size: 1.8rem;
-    }
-
-    .card.glass {
-        padding: 30px 20px;
-    }
+    h1 { font-size: 1.8rem; }
+    .card.glass { padding: 30px 20px; }
 }
