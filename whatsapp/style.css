@@ -1,0 +1,152 @@
+/* Global Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    background-color: #0f0f0f;
+    color: #ffffff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Background Animation */
+.background-glow {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 50% 50%, rgba(37, 211, 102, 0.15), transparent 70%);
+    z-index: 0;
+    animation: glow 6s infinite alternate;
+}
+
+@keyframes glow {
+    0% {
+        opacity: 0.5;
+        transform: scale(1);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+}
+
+/* Container */
+.container {
+    z-index: 10;
+    width: 100%;
+    max-width: 480px;
+    padding: 20px;
+    text-align: center;
+}
+
+/* Card Style (Glassmorphism) */
+.card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 40px 30px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+/* Icon Wrapper */
+.icon-wrapper {
+    background: rgba(37, 211, 102, 0.1);
+    padding: 20px;
+    border-radius: 50%;
+    margin-bottom: 10px;
+    box-shadow: 0 0 20px rgba(37, 211, 102, 0.2);
+}
+
+.whatsapp-icon {
+    filter: drop-shadow(0 0 5px rgba(37, 211, 102, 0.5));
+}
+
+/* Typography */
+h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+    background: linear-gradient(90deg, #ffffff, #e0e0e0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+p {
+    font-size: 1rem;
+    color: #b0b0b0;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+/* CTA Button */
+.cta-button {
+    display: inline-block;
+    background: #25D366;
+    color: #fff;
+    font-weight: 600;
+    font-size: 1.1rem;
+    padding: 16px 32px;
+    border-radius: 50px;
+    text-decoration: none;
+    box-shadow: 0 4px 15px rgba(37, 211, 102, 0.4);
+    transition: all 0.3s ease;
+    width: 100%;
+    letter-spacing: 0.5px;
+}
+
+.cta-button:hover {
+    background: #20bd5a;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(37, 211, 102, 0.6);
+}
+
+/* Pulsing Animation */
+.pulse {
+    animation: pulse-animation 2s infinite;
+}
+
+@keyframes pulse-animation {
+    0% {
+        box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 15px rgba(37, 211, 102, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
+    }
+}
+
+/* Security Icons */
+.security-icons {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: #888;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Footer */
+.footer {
+    margin-top: 30px;
+    font-size: 0.75rem;
+    color: #555;
+}
