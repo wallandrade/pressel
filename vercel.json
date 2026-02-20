@@ -1,6 +1,17 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/index.html" }
+    {
+      "source": "/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/beimports",
+      "destination": "/beimports/index.html"
+    },
+    {
+      "source": "/beimports/",
+      "destination": "/beimports/index.html"
+    }
   ],
   "cleanUrls": true
 }
