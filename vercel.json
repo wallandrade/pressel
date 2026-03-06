@@ -5,12 +5,12 @@
       "destination": "/index.html"
     },
     {
-      "source": "/be",
-      "destination": "/be/index.html"
+      "source": "/grupo1",
+      "destination": "/grupo1/index.html"
     },
     {
-      "source": "/be/",
-      "destination": "/be/index.html"
+      "source": "/grupo1/",
+      "destination": "/grupo1/index.html"
     }
   ],
   "cleanUrls": true
