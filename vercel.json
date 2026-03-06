@@ -1,26 +1,16 @@
 {
   "rewrites": [
     {
-      "source": "/(.*)",
-      "has": [
-        {
-          "type": "host",
-          "value": "(www\\.)?be-imports\\.com"
-        }
-      ],
-      "destination": "/beimports/index.html"
-    },
-    {
       "source": "/",
       "destination": "/index.html"
     },
     {
-      "source": "/beimports",
-      "destination": "/beimports/index.html"
+      "source": "/be",
+      "destination": "/be/index.html"
     },
     {
-      "source": "/beimports/",
-      "destination": "/beimports/index.html"
+      "source": "/be/",
+      "destination": "/be/index.html"
     }
   ],
   "cleanUrls": true
