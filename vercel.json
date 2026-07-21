@@ -11,6 +11,14 @@
     {
       "source": "/grupo5/",
       "destination": "/grupo5/index.html"
+    },
+    {
+      "source": "/importacao",
+      "destination": "/importacao/index.html"
+    },
+    {
+      "source": "/importacao/",
+      "destination": "/importacao/index.html"
     }
   ],
   "cleanUrls": true
