@@ -425,6 +425,8 @@
             var imageModalStatus = document.getElementById("imageModalStatus");
             var pageDefaultsCache = {};
             var IMAGE_LIBRARY_KEY = "presselAdminImageLibraryV1";
+            var serverImageLibrary = [];
+            var hasServerLibrary = false;
 
             configApi.knownPages.forEach(function (key) {
                 if (!pages[key]) {
@@ -450,6 +452,73 @@
             function setImageModalStatus(message, isError) {
                 imageModalStatus.textContent = message || "";
                 imageModalStatus.style.color = isError ? "#ff8f8f" : "#9bc6ae";
+            }
+
+            function fetchServerImageLibrary() {
+                return fetch("/api/admin-images", {
+                    method: "GET",
+                    credentials: "same-origin"
+                })
+                    .then(function (response) {
+                        if (!response.ok) {
+                            return response.json().then(function (data) {
+                                throw new Error((data && data.error) ? data.error : "Falha ao ler banco de imagens.");
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(function (data) {
+                        var items = (data && Array.isArray(data.items)) ? data.items : [];
+                        serverImageLibrary = items;
+                        hasServerLibrary = true;
+                        return items;
+                    });
+            }
+
+            function saveServerImage(src) {
+                return fetch("/api/admin-images", {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ src: src })
+                })
+                    .then(function (response) {
+                        if (!response.ok) {
+                            return response.json().then(function (data) {
+                                throw new Error((data && data.error) ? data.error : "Falha ao salvar no banco.");
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(function (data) {
+                        var items = (data && Array.isArray(data.items)) ? data.items : [];
+                        serverImageLibrary = items;
+                        hasServerLibrary = true;
+                        return items;
+                    });
+            }
+
+            function deleteServerImage(id) {
+                return fetch("/api/admin-images?id=" + encodeURIComponent(id), {
+                    method: "DELETE",
+                    credentials: "same-origin"
+                })
+                    .then(function (response) {
+                        if (!response.ok) {
+                            return response.json().then(function (data) {
+                                throw new Error((data && data.error) ? data.error : "Falha ao excluir no banco.");
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(function (data) {
+                        var items = (data && Array.isArray(data.items)) ? data.items : [];
+                        serverImageLibrary = items;
+                        hasServerLibrary = true;
+                        return items;
+                    });
             }
 
             function getImageLibrary() {
@@ -504,12 +573,24 @@
                 removeBtn.className = "btn-mini btn-remove";
                 removeBtn.textContent = "Excluir";
                 removeBtn.addEventListener("click", function () {
+                    if (hasServerLibrary) {
+                        deleteServerImage(item.id)
+                            .then(function () {
+                                renderImageGallery();
+                                setImageModalStatus("Imagem removida da galeria.", false);
+                            })
+                            .catch(function (error) {
+                                setImageModalStatus(error.message || "Falha ao excluir imagem.", true);
+                            });
+                        return;
+                    }
+
                     var items = getImageLibrary().filter(function (entry) {
                         return entry.id !== item.id;
                     });
                     saveImageLibrary(items);
                     renderImageGallery();
-                    setImageModalStatus("Imagem removida da galeria.", false);
+                    setImageModalStatus("Imagem removida da galeria local.", false);
                 });
                 actions.appendChild(removeBtn);
 
@@ -518,7 +599,7 @@
             }
 
             function renderImageGallery() {
-                var items = getImageLibrary();
+                var items = hasServerLibrary ? serverImageLibrary : getImageLibrary();
                 imageGallery.innerHTML = "";
 
                 if (items.length === 0) {
@@ -536,9 +617,19 @@
             }
 
             function openImageModal() {
-                renderImageGallery();
                 imageModal.classList.add("show");
-                setImageModalStatus("", false);
+                setImageModalStatus("Carregando imagens...", false);
+
+                fetchServerImageLibrary()
+                    .then(function () {
+                        renderImageGallery();
+                        setImageModalStatus("Imagens carregadas do banco.", false);
+                    })
+                    .catch(function () {
+                        hasServerLibrary = false;
+                        renderImageGallery();
+                        setImageModalStatus("Banco indisponivel. Exibindo imagens locais do navegador.", true);
+                    });
             }
 
             function closeImageModal() {
@@ -581,8 +672,17 @@
                     }
 
                     saveImageLibrary(items);
-                    renderImageGallery();
-                    setImageModalStatus("Imagem enviada. Clique em Usar para aplicar.", false);
+
+                    saveServerImage(src)
+                        .then(function () {
+                            renderImageGallery();
+                            setImageModalStatus("Imagem enviada para o banco. Clique em Usar para aplicar.", false);
+                        })
+                        .catch(function () {
+                            hasServerLibrary = false;
+                            renderImageGallery();
+                            setImageModalStatus("Banco indisponivel. Imagem salva apenas localmente neste navegador.", true);
+                        });
                 };
                 reader.onerror = function () {
                     setImageModalStatus("Falha ao carregar imagem.", true);
