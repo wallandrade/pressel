@@ -44,6 +44,17 @@ async function saveLibrary(items) {
     await kv.set(IMAGE_LIBRARY_KEY, normalizeLibrary(items));
 }
 
+function mergeWithDedupBySrc(newSrc, current) {
+    const filtered = current.filter((item) => item.src !== newSrc);
+    return [
+        {
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+            src: newSrc
+        },
+        ...filtered
+    ].slice(0, MAX_ITEMS);
+}
+
 module.exports = async (req, res) => {
     if (!ensureAdminSession(req, res)) {
         return;
@@ -76,13 +87,7 @@ module.exports = async (req, res) => {
             }
 
             const current = await getLibrary();
-            const next = [
-                {
-                    id: Date.now().toString(36) + Math.random().toString(36).slice(2),
-                    src
-                },
-                ...current
-            ].slice(0, MAX_ITEMS);
+            const next = mergeWithDedupBySrc(src, current);
 
             await saveLibrary(next);
             res.status(200).json({ ok: true, items: next });

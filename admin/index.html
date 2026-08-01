@@ -394,7 +394,7 @@
                 <label for="imageUploadInput">Upload de imagem</label>
                 <input id="imageUploadInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
                 <div class="upload-actions">
-                    <button class="btn-secondary" id="saveCurrentImageBtn" type="button">Salvar foto atual no banco</button>
+                    <button class="btn-secondary" id="saveCurrentImageBtn" type="button">Salvar foto no banco</button>
                 </div>
             </div>
 
@@ -711,21 +711,74 @@
                 reader.readAsDataURL(file);
             }
 
+            function readImageFileAsDataUrl(file) {
+                return new Promise(function (resolve, reject) {
+                    if (!file) {
+                        reject(new Error("Selecione um arquivo de imagem."));
+                        return;
+                    }
+
+                    var allowedTypes = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+                    if (allowedTypes.indexOf(file.type) === -1) {
+                        reject(new Error("Formato invalido. Use PNG, JPG, WEBP ou GIF."));
+                        return;
+                    }
+
+                    if (file.size > 2 * 1024 * 1024) {
+                        reject(new Error("Arquivo muito grande. Maximo de 2MB."));
+                        return;
+                    }
+
+                    var reader = new FileReader();
+                    reader.onload = function (event) {
+                        var src = event.target && event.target.result ? String(event.target.result) : "";
+                        if (!src) {
+                            reject(new Error("Nao foi possivel ler a imagem."));
+                            return;
+                        }
+                        resolve(src);
+                    };
+                    reader.onerror = function () {
+                        reject(new Error("Falha ao carregar imagem."));
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
             function saveCurrentImageFromInput() {
-                var src = String(imageInput.value || "").trim();
-                if (!src) {
-                    setImageModalStatus("Nao ha imagem no campo URL da foto para salvar.", true);
+                var selectedFile = imageUploadInput.files && imageUploadInput.files[0];
+
+                if (selectedFile) {
+                    setImageModalStatus("Salvando arquivo selecionado no banco...", false);
+                    readImageFileAsDataUrl(selectedFile)
+                        .then(function (src) {
+                            return saveServerImage(src);
+                        })
+                        .then(function () {
+                            renderImageGallery();
+                            imageUploadInput.value = "";
+                            setImageModalStatus("Arquivo selecionado salvo no banco com sucesso.", false);
+                        })
+                        .catch(function (error) {
+                            setImageModalStatus(error.message || "Falha ao salvar arquivo no banco.", true);
+                        });
                     return;
                 }
 
-                setImageModalStatus("Salvando imagem atual no banco...", false);
+                var src = String(imageInput.value || "").trim();
+                if (!src) {
+                    setImageModalStatus("Nao ha imagem para salvar. Informe URL ou selecione um arquivo.", true);
+                    return;
+                }
+
+                setImageModalStatus("Salvando imagem do campo URL no banco...", false);
                 saveServerImage(src)
                     .then(function () {
                         renderImageGallery();
-                        setImageModalStatus("Imagem atual salva no banco com sucesso.", false);
+                        setImageModalStatus("Imagem do campo URL salva no banco com sucesso.", false);
                     })
                     .catch(function (error) {
-                        setImageModalStatus(error.message || "Falha ao salvar imagem atual no banco.", true);
+                        setImageModalStatus(error.message || "Falha ao salvar imagem no banco.", true);
                     });
             }
 
