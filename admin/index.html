@@ -159,6 +159,136 @@
             color: #9bc6ae;
         }
 
+        .field-actions {
+            margin-top: 8px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-image {
+            background: #1c2d25;
+            color: #9df4c2;
+            border: 1px solid #335747;
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            background: rgba(5, 10, 8, 0.68);
+            z-index: 999;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-card {
+            width: min(860px, 100%);
+            max-height: 88vh;
+            overflow: auto;
+            border: 1px solid #365447;
+            border-radius: 16px;
+            background: #13231c;
+            padding: 18px;
+            box-shadow: 0 20px 70px rgba(0, 0, 0, 0.45);
+        }
+
+        .modal-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .modal-title {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .btn-close {
+            background: #2f201f;
+            color: #ffcfc6;
+            border: 1px solid #5a3a37;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .upload-box {
+            border: 1px dashed #3f6453;
+            border-radius: 12px;
+            padding: 12px;
+            background: rgba(10, 20, 16, 0.7);
+            margin-bottom: 14px;
+        }
+
+        .upload-box input[type="file"] {
+            border: 0;
+            padding: 0;
+            background: transparent;
+            border-radius: 0;
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+            gap: 10px;
+        }
+
+        .gallery-item {
+            border: 1px solid #335545;
+            background: #0f1d18;
+            border-radius: 10px;
+            padding: 8px;
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 88px;
+            object-fit: cover;
+            border-radius: 8px;
+            display: block;
+        }
+
+        .gallery-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .btn-mini {
+            flex: 1;
+            border-radius: 8px;
+            padding: 8px 6px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .btn-use {
+            background: #2ed173;
+            color: #093119;
+        }
+
+        .btn-remove {
+            background: #402826;
+            color: #ffc6bf;
+            border: 1px solid #704541;
+        }
+
+        .modal-status {
+            margin-top: 10px;
+            min-height: 18px;
+            color: #9bc6ae;
+            font-size: 13px;
+        }
+
         .note {
             margin-top: 18px;
             border-left: 3px solid #446d57;
@@ -209,6 +339,9 @@
                 <div>
                     <label for="imageUrl">URL da foto</label>
                     <input id="imageUrl" type="url" placeholder="https://site.com/imagem.jpg">
+                    <div class="field-actions">
+                        <button class="btn-image" id="openImageModalBtn" type="button">Escolher imagem</button>
+                    </div>
                 </div>
 
                 <div>
@@ -231,6 +364,23 @@
                 a foto e o link serao aplicados automaticamente.
             </p>
         </section>
+    </div>
+
+    <div class="modal" id="imageModal" role="dialog" aria-modal="true" aria-labelledby="imageModalTitle">
+        <div class="modal-card">
+            <div class="modal-top">
+                <h2 class="modal-title" id="imageModalTitle">Imagem da pagina</h2>
+                <button class="btn-close" id="closeImageModalBtn" type="button">Fechar</button>
+            </div>
+
+            <div class="upload-box">
+                <label for="imageUploadInput">Upload de imagem</label>
+                <input id="imageUploadInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+            </div>
+
+            <div class="gallery" id="imageGallery"></div>
+            <p class="modal-status" id="imageModalStatus"></p>
+        </div>
     </div>
 
     <script src="../admin-config.js"></script>
@@ -267,7 +417,14 @@
             var saveBtn = document.getElementById("saveBtn");
             var clearBtn = document.getElementById("clearBtn");
             var openBtn = document.getElementById("openBtn");
+            var openImageModalBtn = document.getElementById("openImageModalBtn");
+            var closeImageModalBtn = document.getElementById("closeImageModalBtn");
+            var imageModal = document.getElementById("imageModal");
+            var imageUploadInput = document.getElementById("imageUploadInput");
+            var imageGallery = document.getElementById("imageGallery");
+            var imageModalStatus = document.getElementById("imageModalStatus");
             var pageDefaultsCache = {};
+            var IMAGE_LIBRARY_KEY = "presselAdminImageLibraryV1";
 
             configApi.knownPages.forEach(function (key) {
                 if (!pages[key]) {
@@ -288,6 +445,149 @@
             function setLoginStatus(message, isError) {
                 loginStatus.textContent = message || "";
                 loginStatus.style.color = isError ? "#ff8f8f" : "#9bc6ae";
+            }
+
+            function setImageModalStatus(message, isError) {
+                imageModalStatus.textContent = message || "";
+                imageModalStatus.style.color = isError ? "#ff8f8f" : "#9bc6ae";
+            }
+
+            function getImageLibrary() {
+                try {
+                    var raw = localStorage.getItem(IMAGE_LIBRARY_KEY);
+                    if (!raw) {
+                        return [];
+                    }
+
+                    var parsed = JSON.parse(raw);
+                    if (!Array.isArray(parsed)) {
+                        return [];
+                    }
+
+                    return parsed.filter(function (item) {
+                        return item && typeof item.id === "string" && typeof item.src === "string";
+                    });
+                } catch (error) {
+                    return [];
+                }
+            }
+
+            function saveImageLibrary(items) {
+                localStorage.setItem(IMAGE_LIBRARY_KEY, JSON.stringify(items));
+            }
+
+            function makeImageItemElement(item) {
+                var card = document.createElement("div");
+                card.className = "gallery-item";
+
+                var img = document.createElement("img");
+                img.src = item.src;
+                img.alt = "Imagem enviada";
+                card.appendChild(img);
+
+                var actions = document.createElement("div");
+                actions.className = "gallery-actions";
+
+                var useBtn = document.createElement("button");
+                useBtn.type = "button";
+                useBtn.className = "btn-mini btn-use";
+                useBtn.textContent = "Usar";
+                useBtn.addEventListener("click", function () {
+                    imageInput.value = item.src;
+                    setStatus("Imagem selecionada no campo da foto.", false);
+                    closeImageModal();
+                });
+                actions.appendChild(useBtn);
+
+                var removeBtn = document.createElement("button");
+                removeBtn.type = "button";
+                removeBtn.className = "btn-mini btn-remove";
+                removeBtn.textContent = "Excluir";
+                removeBtn.addEventListener("click", function () {
+                    var items = getImageLibrary().filter(function (entry) {
+                        return entry.id !== item.id;
+                    });
+                    saveImageLibrary(items);
+                    renderImageGallery();
+                    setImageModalStatus("Imagem removida da galeria.", false);
+                });
+                actions.appendChild(removeBtn);
+
+                card.appendChild(actions);
+                return card;
+            }
+
+            function renderImageGallery() {
+                var items = getImageLibrary();
+                imageGallery.innerHTML = "";
+
+                if (items.length === 0) {
+                    var empty = document.createElement("p");
+                    empty.textContent = "Nenhuma imagem enviada ainda.";
+                    empty.style.margin = "6px 0";
+                    empty.style.color = "#9ab6a8";
+                    imageGallery.appendChild(empty);
+                    return;
+                }
+
+                items.forEach(function (item) {
+                    imageGallery.appendChild(makeImageItemElement(item));
+                });
+            }
+
+            function openImageModal() {
+                renderImageGallery();
+                imageModal.classList.add("show");
+                setImageModalStatus("", false);
+            }
+
+            function closeImageModal() {
+                imageModal.classList.remove("show");
+                imageUploadInput.value = "";
+            }
+
+            function saveUploadedImage(file) {
+                if (!file) {
+                    return;
+                }
+
+                var allowedTypes = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+                if (allowedTypes.indexOf(file.type) === -1) {
+                    setImageModalStatus("Formato invalido. Use PNG, JPG, WEBP ou GIF.", true);
+                    return;
+                }
+
+                if (file.size > 2 * 1024 * 1024) {
+                    setImageModalStatus("Arquivo muito grande. Maximo de 2MB.", true);
+                    return;
+                }
+
+                var reader = new FileReader();
+                reader.onload = function (event) {
+                    var src = event.target && event.target.result ? String(event.target.result) : "";
+                    if (!src) {
+                        setImageModalStatus("Nao foi possivel ler a imagem.", true);
+                        return;
+                    }
+
+                    var items = getImageLibrary();
+                    items.unshift({
+                        id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+                        src: src
+                    });
+
+                    if (items.length > 20) {
+                        items = items.slice(0, 20);
+                    }
+
+                    saveImageLibrary(items);
+                    renderImageGallery();
+                    setImageModalStatus("Imagem enviada. Clique em Usar para aplicar.", false);
+                };
+                reader.onerror = function () {
+                    setImageModalStatus("Falha ao carregar imagem.", true);
+                };
+                reader.readAsDataURL(file);
             }
 
             function showLogin() {
@@ -412,6 +712,17 @@
 
             pageSelect.addEventListener("change", function () {
                 loadSelectedPageConfig();
+            });
+            openImageModalBtn.addEventListener("click", openImageModal);
+            closeImageModalBtn.addEventListener("click", closeImageModal);
+            imageModal.addEventListener("click", function (event) {
+                if (event.target === imageModal) {
+                    closeImageModal();
+                }
+            });
+            imageUploadInput.addEventListener("change", function (event) {
+                var file = event.target.files && event.target.files[0];
+                saveUploadedImage(file);
             });
             loginBtn.addEventListener("click", login);
             passwordInput.addEventListener("keydown", function (event) {
