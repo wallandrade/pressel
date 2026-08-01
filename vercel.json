@@ -19,6 +19,14 @@
     {
       "source": "/importacao/",
       "destination": "/importacao/index.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/admin/index.html"
+    },
+    {
+      "source": "/admin/",
+      "destination": "/admin/index.html"
     }
   ],
   "cleanUrls": true

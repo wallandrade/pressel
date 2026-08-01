@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #0c1612;
+            --card: #172820;
+            --line: #30463d;
+            --text: #e8f4ee;
+            --soft: #93ac9f;
+            --accent: #2dd16f;
+            --accent-strong: #1cb45b;
+            --danger: #d74a4a;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Poppins", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(1000px 500px at 15% 20%, #173126 0%, transparent 60%),
+                radial-gradient(800px 500px at 90% 0%, #11241d 0%, transparent 55%),
+                var(--bg);
+            padding: 28px 18px;
+        }
+
+        .wrap {
+            width: min(760px, 100%);
+            margin: 0 auto;
+        }
+
+        .panel {
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            background: rgba(23, 40, 32, 0.9);
+            backdrop-filter: blur(8px);
+            padding: 24px;
+            box-shadow: 0 28px 90px rgba(0, 0, 0, 0.38);
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: clamp(24px, 4vw, 34px);
+            line-height: 1.15;
+        }
+
+        .sub {
+            margin: 0 0 22px;
+            color: var(--soft);
+            font-size: 14px;
+        }
+
+        .grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #cde4d8;
+        }
+
+        input,
+        select {
+            width: 100%;
+            border: 1px solid #395446;
+            background: #101f19;
+            color: #f2fbf6;
+            border-radius: 12px;
+            padding: 12px 14px;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: #49d482;
+            box-shadow: 0 0 0 3px rgba(73, 212, 130, 0.18);
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        button {
+            border: 0;
+            border-radius: 999px;
+            padding: 11px 18px;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.15s ease, filter 0.2s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.04);
+        }
+
+        .btn-save {
+            background: linear-gradient(90deg, var(--accent), #40e980);
+            color: #08311b;
+        }
+
+        .btn-clear {
+            background: #26362f;
+            color: #dcece4;
+            border: 1px solid #3d5549;
+        }
+
+        .btn-open {
+            background: #1e2e27;
+            color: #8bf7ba;
+            border: 1px solid #2d4f3f;
+        }
+
+        .status {
+            min-height: 20px;
+            margin-top: 6px;
+            font-size: 13px;
+            color: #9bc6ae;
+        }
+
+        .note {
+            margin-top: 18px;
+            border-left: 3px solid #446d57;
+            padding: 10px 12px;
+            border-radius: 8px;
+            color: #b7d1c2;
+            font-size: 13px;
+            background: rgba(20, 34, 27, 0.7);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <section class="panel">
+            <h1>Painel Administrativo</h1>
+            <p class="sub">Altere a foto principal e o link do botao por pagina em poucos cliques.</p>
+
+            <div class="grid">
+                <div>
+                    <label for="page">Pagina</label>
+                    <select id="page"></select>
+                </div>
+
+                <div>
+                    <label for="imageUrl">URL da foto</label>
+                    <input id="imageUrl" type="url" placeholder="https://site.com/imagem.jpg">
+                </div>
+
+                <div>
+                    <label for="buttonUrl">Link do botao</label>
+                    <input id="buttonUrl" type="url" placeholder="https://chat.whatsapp.com/...">
+                </div>
+            </div>
+
+            <div class="actions">
+                <button class="btn-save" id="saveBtn" type="button">Salvar alteracoes</button>
+                <button class="btn-clear" id="clearBtn" type="button">Limpar desta pagina</button>
+                <button class="btn-open" id="openBtn" type="button">Abrir pagina selecionada</button>
+            </div>
+
+            <p class="status" id="status"></p>
+
+            <p class="note">
+                Observacao: as alteracoes ficam salvas no navegador atual (localStorage). Ao abrir a pagina selecionada,
+                a foto e o link serao aplicados automaticamente.
+            </p>
+        </section>
+    </div>
+
+    <script src="../admin-config.js"></script>
+    <script>
+        (function () {
+            var api = window.PresselAdminConfig;
+            if (!api) {
+                return;
+            }
+
+            var pages = {
+                home: { label: "Pagina inicial", path: "/" },
+                grupo2: { label: "Grupo 2", path: "/grupo2/" },
+                grupo5: { label: "Grupo 5", path: "/grupo5/" },
+                grupo6: { label: "Grupo 6", path: "/grupo6/" },
+                grupo7: { label: "Grupo 7", path: "/grupo7/" },
+                importacao: { label: "Importacao", path: "/importacao/" },
+                whatsapp: { label: "WhatsApp", path: "/whatsapp/" },
+                kaimportstelegram: { label: "Telegram", path: "/kaimportstelegram/" }
+            };
+
+            var pageSelect = document.getElementById("page");
+            var imageInput = document.getElementById("imageUrl");
+            var buttonInput = document.getElementById("buttonUrl");
+            var status = document.getElementById("status");
+            var saveBtn = document.getElementById("saveBtn");
+            var clearBtn = document.getElementById("clearBtn");
+            var openBtn = document.getElementById("openBtn");
+
+            api.knownPages.forEach(function (key) {
+                if (!pages[key]) {
+                    return;
+                }
+
+                var option = document.createElement("option");
+                option.value = key;
+                option.textContent = pages[key].label;
+                pageSelect.appendChild(option);
+            });
+
+            function setStatus(message, isError) {
+                status.textContent = message || "";
+                status.style.color = isError ? "#ff8f8f" : "#9bc6ae";
+            }
+
+            function loadSelectedPageConfig() {
+                var pageKey = pageSelect.value;
+                var config = api.getPageConfig(pageKey);
+
+                imageInput.value = config.imageUrl || "";
+                buttonInput.value = config.buttonUrl || "";
+                setStatus("Configuracao carregada para " + pages[pageKey].label + ".", false);
+            }
+
+            pageSelect.addEventListener("change", loadSelectedPageConfig);
+
+            saveBtn.addEventListener("click", function () {
+                var pageKey = pageSelect.value;
+                var ok = api.updatePageConfig(pageKey, {
+                    imageUrl: imageInput.value,
+                    buttonUrl: buttonInput.value
+                });
+
+                if (!ok) {
+                    setStatus("Nao foi possivel salvar. Tente novamente.", true);
+                    return;
+                }
+
+                setStatus("Alteracoes salvas para " + pages[pageKey].label + ".", false);
+            });
+
+            clearBtn.addEventListener("click", function () {
+                var pageKey = pageSelect.value;
+                var ok = api.clearPageConfig(pageKey);
+
+                if (!ok) {
+                    setStatus("Nao foi possivel limpar. Tente novamente.", true);
+                    return;
+                }
+
+                imageInput.value = "";
+                buttonInput.value = "";
+                setStatus("Configuracao removida para " + pages[pageKey].label + ".", false);
+            });
+
+            openBtn.addEventListener("click", function () {
+                var pageKey = pageSelect.value;
+                var meta = pages[pageKey];
+                if (!meta) {
+                    setStatus("Pagina invalida.", true);
+                    return;
+                }
+                window.open(meta.path, "_blank");
+            });
+
+            loadSelectedPageConfig();
+        })();
+    </script>
+</body>
+
+</html>
