@@ -66,7 +66,7 @@ module.exports = (req, res) => {
         return;
     }
 
-    const adminSecret = process.env.ADMIN_SESSION_SECRET;
+    const adminSecret = String(process.env.ADMIN_SESSION_SECRET || "").trim();
     if (!adminSecret) {
         res.status(500).json({ authenticated: false, error: "Segredo de sessao nao configurado." });
         return;

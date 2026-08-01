@@ -3,6 +3,10 @@ const crypto = require("crypto");
 const SESSION_COOKIE_NAME = "pressel_admin_session";
 const SESSION_DURATION_SECONDS = 60 * 60 * 8;
 
+function normalizeCredential(value) {
+    return String(value || "").trim();
+}
+
 function parseJsonBody(req) {
     return new Promise((resolve, reject) => {
         if (!req.body) {
@@ -44,9 +48,9 @@ module.exports = async (req, res) => {
         return;
     }
 
-    const adminUser = process.env.ADMIN_USERNAME;
-    const adminPass = process.env.ADMIN_PASSWORD;
-    const adminSecret = process.env.ADMIN_SESSION_SECRET;
+    const adminUser = normalizeCredential(process.env.ADMIN_USERNAME);
+    const adminPass = normalizeCredential(process.env.ADMIN_PASSWORD);
+    const adminSecret = normalizeCredential(process.env.ADMIN_SESSION_SECRET);
 
     if (!adminUser || !adminPass || !adminSecret) {
         res.status(500).json({ ok: false, error: "Credenciais administrativas nao configuradas no servidor." });
@@ -55,8 +59,8 @@ module.exports = async (req, res) => {
 
     try {
         const body = await parseJsonBody(req);
-        const username = (body.username || "").trim();
-        const password = String(body.password || "");
+        const username = normalizeCredential(body.username);
+        const password = normalizeCredential(body.password);
 
         if (username !== adminUser || password !== adminPass) {
             res.status(401).json({ ok: false, error: "Usuario ou senha invalidos." });
