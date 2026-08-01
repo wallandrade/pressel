@@ -267,6 +267,7 @@
             var saveBtn = document.getElementById("saveBtn");
             var clearBtn = document.getElementById("clearBtn");
             var openBtn = document.getElementById("openBtn");
+            var pageDefaultsCache = {};
 
             configApi.knownPages.forEach(function (key) {
                 if (!pages[key]) {
@@ -299,13 +300,51 @@
                 adminPanel.classList.remove("hidden");
             }
 
+            function fetchPageDefaults(pageKey) {
+                if (pageDefaultsCache[pageKey]) {
+                    return Promise.resolve(pageDefaultsCache[pageKey]);
+                }
+
+                var meta = pages[pageKey];
+                if (!meta) {
+                    return Promise.resolve({ imageUrl: "", buttonUrl: "" });
+                }
+
+                return fetch(meta.path, { cache: "no-store" })
+                    .then(function (response) {
+                        if (!response.ok) {
+                            throw new Error("Falha ao ler pagina.");
+                        }
+                        return response.text();
+                    })
+                    .then(function (html) {
+                        var parser = new DOMParser();
+                        var doc = parser.parseFromString(html, "text/html");
+                        var buttonEl = doc.querySelector("a.cta-button");
+                        var imageEl = doc.querySelector(".icon-wrapper img");
+
+                        var defaults = {
+                            imageUrl: imageEl ? (imageEl.getAttribute("src") || "").trim() : "",
+                            buttonUrl: buttonEl ? (buttonEl.getAttribute("href") || "").trim() : ""
+                        };
+
+                        pageDefaultsCache[pageKey] = defaults;
+                        return defaults;
+                    })
+                    .catch(function () {
+                        return { imageUrl: "", buttonUrl: "" };
+                    });
+            }
+
             function loadSelectedPageConfig() {
                 var pageKey = pageSelect.value;
                 var config = configApi.getPageConfig(pageKey);
 
-                imageInput.value = config.imageUrl || "";
-                buttonInput.value = config.buttonUrl || "";
-                setStatus("Configuracao carregada para " + pages[pageKey].label + ".", false);
+                return fetchPageDefaults(pageKey).then(function (defaults) {
+                    imageInput.value = config.imageUrl || defaults.imageUrl || "";
+                    buttonInput.value = config.buttonUrl || defaults.buttonUrl || "";
+                    setStatus("Configuracao carregada para " + pages[pageKey].label + ".", false);
+                });
             }
 
             function checkSession() {
@@ -350,7 +389,7 @@
                         passwordInput.value = "";
                         setLoginStatus("Login realizado com sucesso.", false);
                         showPanel();
-                        loadSelectedPageConfig();
+                        return loadSelectedPageConfig();
                     })
                     .catch(function (error) {
                         setLoginStatus(error.message || "Nao foi possivel entrar.", true);
@@ -371,7 +410,9 @@
                     });
             }
 
-            pageSelect.addEventListener("change", loadSelectedPageConfig);
+            pageSelect.addEventListener("change", function () {
+                loadSelectedPageConfig();
+            });
             loginBtn.addEventListener("click", login);
             passwordInput.addEventListener("keydown", function (event) {
                 if (event.key === "Enter") {
