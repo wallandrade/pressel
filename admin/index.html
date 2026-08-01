@@ -229,6 +229,13 @@
             margin-bottom: 14px;
         }
 
+        .upload-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
         .upload-box input[type="file"] {
             border: 0;
             padding: 0;
@@ -267,6 +274,16 @@
             flex: 1;
             border-radius: 8px;
             padding: 8px 6px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .btn-secondary {
+            background: #21352b;
+            color: #b9f3d2;
+            border: 1px solid #345445;
+            border-radius: 999px;
+            padding: 9px 14px;
             font-size: 12px;
             font-weight: 700;
         }
@@ -376,6 +393,9 @@
             <div class="upload-box">
                 <label for="imageUploadInput">Upload de imagem</label>
                 <input id="imageUploadInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+                <div class="upload-actions">
+                    <button class="btn-secondary" id="saveCurrentImageBtn" type="button">Salvar foto atual no banco</button>
+                </div>
             </div>
 
             <div class="gallery" id="imageGallery"></div>
@@ -423,6 +443,7 @@
             var imageUploadInput = document.getElementById("imageUploadInput");
             var imageGallery = document.getElementById("imageGallery");
             var imageModalStatus = document.getElementById("imageModalStatus");
+            var saveCurrentImageBtn = document.getElementById("saveCurrentImageBtn");
             var pageDefaultsCache = {};
             var IMAGE_LIBRARY_KEY = "presselAdminImageLibraryV1";
             var serverImageLibrary = [];
@@ -690,6 +711,24 @@
                 reader.readAsDataURL(file);
             }
 
+            function saveCurrentImageFromInput() {
+                var src = String(imageInput.value || "").trim();
+                if (!src) {
+                    setImageModalStatus("Nao ha imagem no campo URL da foto para salvar.", true);
+                    return;
+                }
+
+                setImageModalStatus("Salvando imagem atual no banco...", false);
+                saveServerImage(src)
+                    .then(function () {
+                        renderImageGallery();
+                        setImageModalStatus("Imagem atual salva no banco com sucesso.", false);
+                    })
+                    .catch(function (error) {
+                        setImageModalStatus(error.message || "Falha ao salvar imagem atual no banco.", true);
+                    });
+            }
+
             function showLogin() {
                 loginPanel.classList.remove("hidden");
                 adminPanel.classList.add("hidden");
@@ -824,6 +863,7 @@
                 var file = event.target.files && event.target.files[0];
                 saveUploadedImage(file);
             });
+            saveCurrentImageBtn.addEventListener("click", saveCurrentImageFromInput);
             loginBtn.addEventListener("click", login);
             passwordInput.addEventListener("keydown", function (event) {
                 if (event.key === "Enter") {
