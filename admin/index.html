@@ -82,7 +82,8 @@
         }
 
         input,
-        select {
+        select,
+        textarea {
             width: 100%;
             border: 1px solid #395446;
             background: #101f19;
@@ -96,9 +97,15 @@
         }
 
         input:focus,
-        select:focus {
+        select:focus,
+        textarea:focus {
             border-color: #49d482;
             box-shadow: 0 0 0 3px rgba(73, 212, 130, 0.18);
+        }
+
+        textarea {
+            min-height: 88px;
+            resize: vertical;
         }
 
         .actions {
@@ -345,7 +352,7 @@
 
         <section class="panel hidden" id="adminPanel">
             <h1>Painel Administrativo</h1>
-            <p class="sub">Altere a foto principal e o link do botao por pagina em poucos cliques.</p>
+            <p class="sub">Altere foto, link e textos principais por pagina em poucos cliques.</p>
 
             <div class="grid">
                 <div>
@@ -365,6 +372,21 @@
                     <label for="buttonUrl">Link do botao</label>
                     <input id="buttonUrl" type="url" placeholder="https://chat.whatsapp.com/...">
                 </div>
+
+                <div>
+                    <label for="titleText">Titulo principal</label>
+                    <input id="titleText" type="text" placeholder="Ex: Yuri Importacao">
+                </div>
+
+                <div>
+                    <label for="descriptionText">Descricao principal</label>
+                    <textarea id="descriptionText" placeholder="Texto principal que aparece abaixo do titulo."></textarea>
+                </div>
+
+                <div>
+                    <label for="buttonText">Texto do botao</label>
+                    <input id="buttonText" type="text" placeholder="Ex: ENTRAR NO GRUPO">
+                </div>
             </div>
 
             <div class="actions">
@@ -378,7 +400,7 @@
 
             <p class="note">
                 Observacao: as alteracoes ficam salvas no navegador atual (localStorage). Ao abrir a pagina selecionada,
-                a foto e o link serao aplicados automaticamente.
+                a foto, o link e os textos serao aplicados automaticamente.
             </p>
         </section>
     </div>
@@ -433,6 +455,9 @@
             var pageSelect = document.getElementById("page");
             var imageInput = document.getElementById("imageUrl");
             var buttonInput = document.getElementById("buttonUrl");
+            var titleTextInput = document.getElementById("titleText");
+            var descriptionTextInput = document.getElementById("descriptionText");
+            var buttonTextInput = document.getElementById("buttonText");
             var status = document.getElementById("status");
             var saveBtn = document.getElementById("saveBtn");
             var clearBtn = document.getElementById("clearBtn");
@@ -799,7 +824,7 @@
 
                 var meta = pages[pageKey];
                 if (!meta) {
-                    return Promise.resolve({ imageUrl: "", buttonUrl: "" });
+                    return Promise.resolve({ imageUrl: "", buttonUrl: "", titleText: "", descriptionText: "", buttonText: "" });
                 }
 
                 return fetch(meta.path, { cache: "no-store" })
@@ -814,17 +839,22 @@
                         var doc = parser.parseFromString(html, "text/html");
                         var buttonEl = doc.querySelector("a.cta-button");
                         var imageEl = doc.querySelector(".icon-wrapper img");
+                        var titleEl = doc.querySelector(".card h1");
+                        var descriptionEl = doc.querySelector(".card p");
 
                         var defaults = {
                             imageUrl: imageEl ? (imageEl.getAttribute("src") || "").trim() : "",
-                            buttonUrl: buttonEl ? (buttonEl.getAttribute("href") || "").trim() : ""
+                            buttonUrl: buttonEl ? (buttonEl.getAttribute("href") || "").trim() : "",
+                            titleText: titleEl ? (titleEl.textContent || "").trim() : "",
+                            descriptionText: descriptionEl ? (descriptionEl.textContent || "").trim() : "",
+                            buttonText: buttonEl ? (buttonEl.textContent || "").trim() : ""
                         };
 
                         pageDefaultsCache[pageKey] = defaults;
                         return defaults;
                     })
                     .catch(function () {
-                        return { imageUrl: "", buttonUrl: "" };
+                        return { imageUrl: "", buttonUrl: "", titleText: "", descriptionText: "", buttonText: "" };
                     });
             }
 
@@ -835,6 +865,9 @@
                 return fetchPageDefaults(pageKey).then(function (defaults) {
                     imageInput.value = config.imageUrl || defaults.imageUrl || "";
                     buttonInput.value = config.buttonUrl || defaults.buttonUrl || "";
+                    titleTextInput.value = config.titleText || defaults.titleText || "";
+                    descriptionTextInput.value = config.descriptionText || defaults.descriptionText || "";
+                    buttonTextInput.value = config.buttonText || defaults.buttonText || "";
                     setStatus("Configuracao carregada para " + pages[pageKey].label + ".", false);
                 });
             }
@@ -929,7 +962,10 @@
                 var pageKey = pageSelect.value;
                 var ok = configApi.updatePageConfig(pageKey, {
                     imageUrl: imageInput.value,
-                    buttonUrl: buttonInput.value
+                    buttonUrl: buttonInput.value,
+                    titleText: titleTextInput.value,
+                    descriptionText: descriptionTextInput.value,
+                    buttonText: buttonTextInput.value
                 });
 
                 if (!ok) {
@@ -951,6 +987,9 @@
 
                 imageInput.value = "";
                 buttonInput.value = "";
+                titleTextInput.value = "";
+                descriptionTextInput.value = "";
+                buttonTextInput.value = "";
                 setStatus("Configuracao removida para " + pages[pageKey].label + ".", false);
             });
 

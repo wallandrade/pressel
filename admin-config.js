@@ -72,6 +72,13 @@
         return value.trim();
     }
 
+    function sanitizeText(value) {
+        if (typeof value !== "string") {
+            return "";
+        }
+        return value.trim();
+    }
+
     function getPageConfig(pageKey) {
         if (!pageKey) {
             return {};
@@ -86,7 +93,10 @@
 
         return {
             imageUrl: sanitizeUrl(config.imageUrl || ""),
-            buttonUrl: sanitizeUrl(config.buttonUrl || "")
+            buttonUrl: sanitizeUrl(config.buttonUrl || ""),
+            titleText: sanitizeText(config.titleText || ""),
+            descriptionText: sanitizeText(config.descriptionText || ""),
+            buttonText: sanitizeText(config.buttonText || "")
         };
     }
 
@@ -134,6 +144,45 @@
         button.setAttribute("href", buttonUrl);
     }
 
+    function applyTitleText(titleText) {
+        if (!titleText) {
+            return;
+        }
+
+        var title = document.querySelector(".card h1");
+        if (!title) {
+            return;
+        }
+
+        title.textContent = titleText;
+    }
+
+    function applyDescriptionText(descriptionText) {
+        if (!descriptionText) {
+            return;
+        }
+
+        var description = document.querySelector(".card p");
+        if (!description) {
+            return;
+        }
+
+        description.textContent = descriptionText;
+    }
+
+    function applyButtonText(buttonText) {
+        if (!buttonText) {
+            return;
+        }
+
+        var button = document.querySelector("a.cta-button");
+        if (!button) {
+            return;
+        }
+
+        button.textContent = buttonText;
+    }
+
     function applyCurrentPageConfig() {
         var key = getPageKeyFromPath(window.location.pathname);
         if (!key) {
@@ -143,6 +192,9 @@
         var config = getPageConfig(key);
         applyImage(config.imageUrl);
         applyButtonLink(config.buttonUrl);
+        applyTitleText(config.titleText);
+        applyDescriptionText(config.descriptionText);
+        applyButtonText(config.buttonText);
     }
 
     function updatePageConfig(pageKey, nextConfig) {
@@ -152,9 +204,12 @@
 
         var imageUrl = sanitizeUrl(nextConfig.imageUrl || "");
         var buttonUrl = sanitizeUrl(nextConfig.buttonUrl || "");
+        var titleText = sanitizeText(nextConfig.titleText || "");
+        var descriptionText = sanitizeText(nextConfig.descriptionText || "");
+        var buttonText = sanitizeText(nextConfig.buttonText || "");
         var allConfig = getAllConfig();
 
-        if (!imageUrl && !buttonUrl) {
+        if (!imageUrl && !buttonUrl && !titleText && !descriptionText && !buttonText) {
             delete allConfig[pageKey];
             setAllConfig(allConfig);
             return true;
@@ -162,7 +217,10 @@
 
         allConfig[pageKey] = {
             imageUrl: imageUrl,
-            buttonUrl: buttonUrl
+            buttonUrl: buttonUrl,
+            titleText: titleText,
+            descriptionText: descriptionText,
+            buttonText: buttonText
         };
 
         setAllConfig(allConfig);
