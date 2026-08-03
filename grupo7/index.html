@@ -41,6 +41,36 @@
     <noscript><img height="1" width="1" style="display:none"
             src="https://www.facebook.com/tr?id=807869118792304&ev=PageView&noscript=1" /></noscript>
     <!-- End Meta Pixel Code -->
+
+    <style>
+        .cta-button {
+            background: #1877f2;
+            box-shadow: 0 4px 15px rgba(24, 119, 242, 0.4);
+        }
+
+        .cta-button:hover {
+            background: #0f66d6;
+            box-shadow: 0 6px 20px rgba(24, 119, 242, 0.6);
+        }
+
+        .pulse {
+            animation: pulse-animation-blue 2s infinite;
+        }
+
+        @keyframes pulse-animation-blue {
+            0% {
+                box-shadow: 0 0 0 0 rgba(24, 119, 242, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 15px rgba(24, 119, 242, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(24, 119, 242, 0);
+            }
+        }
+    </style>
 </head>
 
 <body>
