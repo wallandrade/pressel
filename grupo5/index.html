@@ -121,7 +121,23 @@
         </footer>
     </main>
 
-    <script src="../admin-config.js"></script>
+    <script src="../admin-config.js?v=20260831"></script>
+    <script>
+        (function () {
+            function lockGrupo5ButtonHref() {
+                var button = document.querySelector("a.cta-button");
+                if (button) {
+                    button.setAttribute("href", "https://chat.whatsapp.com/LlvoKvrtjz5AiELj2UO0h5?s=cl&p=i&mlu=4");
+                }
+            }
+
+            if (document.readyState === "loading") {
+                document.addEventListener("DOMContentLoaded", lockGrupo5ButtonHref);
+            } else {
+                lockGrupo5ButtonHref();
+            }
+        })();
+    </script>
 </body>
 
 </html>

@@ -1,5 +1,8 @@
 (function () {
     var STORAGE_KEY = "presselAdminConfigV1";
+    var MIGRATION_KEY = "presselAdminConfigMigrationId";
+    var GRUPO5_BUTTON_URL = "https://chat.whatsapp.com/LlvoKvrtjz5AiELj2UO0h5?s=cl&p=i&mlu=4";
+    var CURRENT_MIGRATION_ID = "grupo5-whatsapp-20260831";
     var KNOWN_PAGES = {
         home: true,
         grupo2: true,
@@ -183,7 +186,27 @@
         button.textContent = buttonText;
     }
 
+    function migrateStoredConfig() {
+        try {
+            if (localStorage.getItem(MIGRATION_KEY) === CURRENT_MIGRATION_ID) {
+                return;
+            }
+
+            var allConfig = getAllConfig();
+            if (allConfig.grupo5 && typeof allConfig.grupo5 === "object" && allConfig.grupo5.buttonUrl) {
+                allConfig.grupo5.buttonUrl = GRUPO5_BUTTON_URL;
+                setAllConfig(allConfig);
+            }
+
+            localStorage.setItem(MIGRATION_KEY, CURRENT_MIGRATION_ID);
+        } catch (err) {
+            return;
+        }
+    }
+
     function applyCurrentPageConfig() {
+        migrateStoredConfig();
+
         var key = getPageKeyFromPath(window.location.pathname);
         if (!key) {
             return;
