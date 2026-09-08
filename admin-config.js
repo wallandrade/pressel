@@ -1,8 +1,8 @@
 (function () {
     var STORAGE_KEY = "presselAdminConfigV1";
     var MIGRATION_KEY = "presselAdminConfigMigrationId";
-    var GRUPO5_BUTTON_URL = "https://chat.whatsapp.com/LlvoKvrtjz5AiELj2UO0h5?s=cl&p=i&mlu=4";
-    var CURRENT_MIGRATION_ID = "grupo5-whatsapp-20260831";
+    var GRUPO5_BUTTON_URL = "https://chat.whatsapp.com/FpY5emkTw5R9KslQyNAUw5?s=cl&p=i&mlu=4&ilr=4";
+    var CURRENT_MIGRATION_ID = "grupo5-whatsapp-20260908";
     var KNOWN_PAGES = {
         home: true,
         grupo2: true,
