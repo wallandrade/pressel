@@ -1,5 +1,5 @@
-const { kv } = require("@vercel/kv");
 const { ensureAdminSession } = require("./_admin-auth");
+const { isKvConfigured, getKvClient } = require("./_kv");
 
 const IMAGE_LIBRARY_KEY = "presselAdminImageLibraryDbV1";
 const MAX_ITEMS = 30;
@@ -36,11 +36,13 @@ function parseJsonBody(req) {
 }
 
 async function getLibrary() {
+    const kv = getKvClient();
     const list = await kv.get(IMAGE_LIBRARY_KEY);
     return normalizeLibrary(list);
 }
 
 async function saveLibrary(items) {
+    const kv = getKvClient();
     await kv.set(IMAGE_LIBRARY_KEY, normalizeLibrary(items));
 }
 
@@ -60,8 +62,8 @@ module.exports = async (req, res) => {
         return;
     }
 
-    if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
-        res.status(500).json({ ok: false, error: "Banco de imagens (Vercel KV) nao configurado." });
+    if (!isKvConfigured()) {
+        res.status(500).json({ ok: false, error: "Banco de imagens (KV/Redis) nao configurado." });
         return;
     }
 

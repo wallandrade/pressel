@@ -279,11 +279,28 @@
         return true;
     }
 
+    function compactImageUrl(value) {
+        var url = sanitizeUrl(value);
+        if (!url || url.indexOf("data:") === 0) {
+            return "";
+        }
+        return url;
+    }
+
     function readJson(response) {
-        return response.json().then(function (data) {
+        return response.text().then(function (text) {
+            var data = {};
+
+            try {
+                data = text ? JSON.parse(text) : {};
+            } catch (err) {
+                throw new Error("Falha na API de configuracao (HTTP " + response.status + ").");
+            }
+
             if (!response.ok) {
                 throw new Error((data && data.error) ? data.error : "Falha na configuracao.");
             }
+
             return data;
         });
     }
@@ -314,7 +331,7 @@
             },
             body: JSON.stringify({
                 page: pageKey,
-                imageUrl: normalized.imageUrl,
+                imageUrl: compactImageUrl(normalized.imageUrl),
                 buttonUrl: normalized.buttonUrl,
                 titleText: normalized.titleText,
                 descriptionText: normalized.descriptionText,

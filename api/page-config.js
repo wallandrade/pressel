@@ -1,7 +1,7 @@
-const { kv } = require("@vercel/kv");
 const { ensureAdminSession } = require("./_admin-auth");
+const { isKvConfigured, getKvClient, publicKvError } = require("./_kv");
 
-const PAGE_CONFIG_KEY = "presselAdminPageConfigDbV1";
+const PAGE_CONFIG_PREFIX = "presselPageConfigV1:";
 const KNOWN_PAGES = {
     home: true,
     grupo2: true,
@@ -13,7 +13,7 @@ const KNOWN_PAGES = {
     kaimportstelegram: true
 };
 const MAX_TEXT_LENGTH = 2000;
-const MAX_IMAGE_URL_LENGTH = 2_800_000;
+const MAX_IMAGE_URL_LENGTH = 2000;
 
 function parseJsonBody(req) {
     return new Promise((resolve, reject) => {
@@ -61,11 +61,11 @@ function sanitizeButtonUrl(value) {
 
 function sanitizeImageUrl(value) {
     const url = sanitizeText(value, MAX_IMAGE_URL_LENGTH);
-    if (!url) {
+    if (!url || url.startsWith("data:")) {
         return "";
     }
 
-    if (isHttpUrl(url) || url.startsWith("/") || url.startsWith("data:image/")) {
+    if (isHttpUrl(url) || url.startsWith("/")) {
         return url;
     }
 
@@ -106,31 +106,33 @@ function hasAnyField(config) {
     );
 }
 
-function normalizeAllConfig(value) {
-    if (!value || typeof value !== "object") {
-        return {};
+function pageKeyName(pageKey) {
+    return PAGE_CONFIG_PREFIX + pageKey;
+}
+
+async function getPageConfig(pageKey) {
+    const kv = getKvClient();
+    const raw = await kv.get(pageKeyName(pageKey));
+    return normalizePageConfig(raw);
+}
+
+async function savePageConfig(pageKey, config) {
+    const kv = getKvClient();
+    const next = normalizePageConfig(config);
+
+    if (!hasAnyField(next)) {
+        await kv.del(pageKeyName(pageKey));
+        return emptyPageConfig();
     }
 
-    return Object.keys(KNOWN_PAGES).reduce((acc, pageKey) => {
-        const next = normalizePageConfig(value[pageKey]);
-        if (hasAnyField(next)) {
-            acc[pageKey] = next;
-        }
-        return acc;
-    }, {});
+    await kv.set(pageKeyName(pageKey), next);
+    return next;
 }
 
-function kvConfigured() {
-    return Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
-}
-
-async function getAllConfig() {
-    const raw = await kv.get(PAGE_CONFIG_KEY);
-    return normalizeAllConfig(raw);
-}
-
-async function saveAllConfig(config) {
-    await kv.set(PAGE_CONFIG_KEY, normalizeAllConfig(config));
+async function deletePageConfig(pageKey) {
+    const kv = getKvClient();
+    await kv.del(pageKeyName(pageKey));
+    return emptyPageConfig();
 }
 
 function sendNoStore(res) {
@@ -141,33 +143,44 @@ module.exports = async (req, res) => {
     sendNoStore(res);
 
     if (req.method === "GET") {
-        if (!kvConfigured()) {
-            res.status(200).json({ ok: true, pages: {}, config: emptyPageConfig() });
+        const pageKey = sanitizeText((req.query && req.query.page) || "", 80);
+
+        if (pageKey && !KNOWN_PAGES[pageKey]) {
+            res.status(400).json({ ok: false, error: "Pagina invalida." });
+            return;
+        }
+
+        if (!isKvConfigured()) {
+            res.status(200).json({
+                ok: true,
+                page: pageKey || "",
+                config: emptyPageConfig(),
+                pages: {}
+            });
             return;
         }
 
         try {
-            const pages = await getAllConfig();
-            const pageKey = sanitizeText((req.query && req.query.page) || "", 80);
-
             if (pageKey) {
-                if (!KNOWN_PAGES[pageKey]) {
-                    res.status(400).json({ ok: false, error: "Pagina invalida." });
-                    return;
-                }
-
+                const config = await getPageConfig(pageKey);
                 res.status(200).json({
                     ok: true,
                     page: pageKey,
-                    config: pages[pageKey] || emptyPageConfig()
+                    config
                 });
                 return;
             }
 
-            res.status(200).json({ ok: true, pages });
+            res.status(200).json({ ok: true, pages: {} });
             return;
         } catch (error) {
-            res.status(500).json({ ok: false, error: "Erro ao ler configuracao das paginas." });
+            res.status(200).json({
+                ok: true,
+                page: pageKey || "",
+                config: emptyPageConfig(),
+                pages: {},
+                warning: publicKvError(error, "Nao foi possivel ler o banco.")
+            });
             return;
         }
     }
@@ -176,8 +189,11 @@ module.exports = async (req, res) => {
         return;
     }
 
-    if (!kvConfigured()) {
-        res.status(500).json({ ok: false, error: "Banco de configuracao (Vercel KV) nao configurado." });
+    if (!isKvConfigured()) {
+        res.status(500).json({
+            ok: false,
+            error: "Banco (KV/Redis) nao configurado. Conecte o Redis/KV no projeto da Vercel."
+        });
         return;
     }
 
@@ -191,20 +207,11 @@ module.exports = async (req, res) => {
                 return;
             }
 
-            const nextPage = normalizePageConfig(body);
-            const allConfig = await getAllConfig();
-
-            if (!hasAnyField(nextPage)) {
-                delete allConfig[pageKey];
-            } else {
-                allConfig[pageKey] = nextPage;
-            }
-
-            await saveAllConfig(allConfig);
+            const config = await savePageConfig(pageKey, body);
             res.status(200).json({
                 ok: true,
                 page: pageKey,
-                config: allConfig[pageKey] || emptyPageConfig()
+                config
             });
             return;
         }
@@ -217,15 +224,16 @@ module.exports = async (req, res) => {
                 return;
             }
 
-            const allConfig = await getAllConfig();
-            delete allConfig[pageKey];
-            await saveAllConfig(allConfig);
-            res.status(200).json({ ok: true, page: pageKey, config: emptyPageConfig() });
+            const config = await deletePageConfig(pageKey);
+            res.status(200).json({ ok: true, page: pageKey, config });
             return;
         }
 
         res.status(405).json({ ok: false, error: "Metodo nao permitido." });
     } catch (error) {
-        res.status(500).json({ ok: false, error: "Erro ao salvar configuracao das paginas." });
+        res.status(500).json({
+            ok: false,
+            error: publicKvError(error, "Erro ao salvar o link no banco.")
+        });
     }
 };
