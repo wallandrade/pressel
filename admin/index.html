@@ -399,8 +399,8 @@
             <p class="status" id="status"></p>
 
             <p class="note">
-                Observacao: as alteracoes ficam salvas no navegador atual (localStorage). Ao abrir a pagina selecionada,
-                a foto, o link e os textos serao aplicados automaticamente.
+                Observacao: ao salvar, o link, a foto e os textos vao para o servidor. Qualquer pessoa que abrir a
+                pagina vera a versao nova.
             </p>
         </section>
     </div>
@@ -425,7 +425,7 @@
         </div>
     </div>
 
-    <script src="../admin-config.js?v=20260913"></script>
+    <script src="../admin-config.js?v=20260924"></script>
     <script>
         (function () {
             var configApi = window.PresselAdminConfig;
@@ -858,17 +858,27 @@
                     });
             }
 
+            function fillPageForm(config, defaults) {
+                imageInput.value = (config && config.imageUrl) || defaults.imageUrl || "";
+                buttonInput.value = (config && config.buttonUrl) || defaults.buttonUrl || "";
+                titleTextInput.value = (config && config.titleText) || defaults.titleText || "";
+                descriptionTextInput.value = (config && config.descriptionText) || defaults.descriptionText || "";
+                buttonTextInput.value = (config && config.buttonText) || defaults.buttonText || "";
+            }
+
             function loadSelectedPageConfig() {
                 var pageKey = pageSelect.value;
-                var config = configApi.getPageConfig(pageKey);
 
-                return fetchPageDefaults(pageKey).then(function (defaults) {
-                    imageInput.value = config.imageUrl || defaults.imageUrl || "";
-                    buttonInput.value = config.buttonUrl || defaults.buttonUrl || "";
-                    titleTextInput.value = config.titleText || defaults.titleText || "";
-                    descriptionTextInput.value = config.descriptionText || defaults.descriptionText || "";
-                    buttonTextInput.value = config.buttonText || defaults.buttonText || "";
+                return Promise.all([
+                    configApi.fetchServerPageConfig(pageKey).catch(function () {
+                        return configApi.getPageConfig(pageKey);
+                    }),
+                    fetchPageDefaults(pageKey)
+                ]).then(function (results) {
+                    fillPageForm(results[0], results[1]);
                     setStatus("Configuracao carregada para " + pages[pageKey].label + ".", false);
+                }).catch(function () {
+                    setStatus("Nao foi possivel carregar a configuracao.", true);
                 });
             }
 
@@ -960,37 +970,46 @@
 
             saveBtn.addEventListener("click", function () {
                 var pageKey = pageSelect.value;
-                var ok = configApi.updatePageConfig(pageKey, {
+                setStatus("Salvando no servidor...", false);
+                saveBtn.disabled = true;
+
+                configApi.saveServerPageConfig(pageKey, {
                     imageUrl: imageInput.value,
                     buttonUrl: buttonInput.value,
                     titleText: titleTextInput.value,
                     descriptionText: descriptionTextInput.value,
                     buttonText: buttonTextInput.value
-                });
-
-                if (!ok) {
-                    setStatus("Nao foi possivel salvar. Tente novamente.", true);
-                    return;
-                }
-
-                setStatus("Alteracoes salvas para " + pages[pageKey].label + ".", false);
+                })
+                    .then(function () {
+                        setStatus("Alteracoes publicadas para " + pages[pageKey].label + ". O link novo ja vale na pagina.", false);
+                    })
+                    .catch(function (error) {
+                        setStatus(error.message || "Nao foi possivel salvar no servidor.", true);
+                    })
+                    .then(function () {
+                        saveBtn.disabled = false;
+                    });
             });
 
             clearBtn.addEventListener("click", function () {
                 var pageKey = pageSelect.value;
-                var ok = configApi.clearPageConfig(pageKey);
+                setStatus("Removendo do servidor...", false);
+                clearBtn.disabled = true;
 
-                if (!ok) {
-                    setStatus("Nao foi possivel limpar. Tente novamente.", true);
-                    return;
-                }
-
-                imageInput.value = "";
-                buttonInput.value = "";
-                titleTextInput.value = "";
-                descriptionTextInput.value = "";
-                buttonTextInput.value = "";
-                setStatus("Configuracao removida para " + pages[pageKey].label + ".", false);
+                configApi.clearServerPageConfig(pageKey)
+                    .then(function () {
+                        return fetchPageDefaults(pageKey);
+                    })
+                    .then(function (defaults) {
+                        fillPageForm({}, defaults);
+                        setStatus("Configuracao removida para " + pages[pageKey].label + ". A pagina voltou ao padrao.", false);
+                    })
+                    .catch(function (error) {
+                        setStatus(error.message || "Nao foi possivel limpar no servidor.", true);
+                    })
+                    .then(function () {
+                        clearBtn.disabled = false;
+                    });
             });
 
             openBtn.addEventListener("click", function () {

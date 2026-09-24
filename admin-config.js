@@ -1,8 +1,5 @@
 (function () {
     var STORAGE_KEY = "presselAdminConfigV1";
-    var MIGRATION_KEY = "presselAdminConfigMigrationId";
-    var GRUPO5_BUTTON_URL = "https://chat.whatsapp.com/LH49aorZh6B3qrovN4pxOO?s=cl&p=i&mlu=4&ilr=4";
-    var CURRENT_MIGRATION_ID = "grupo5-whatsapp-20260913";
     var KNOWN_PAGES = {
         home: true,
         grupo2: true,
@@ -13,6 +10,7 @@
         whatsapp: true,
         kaimportstelegram: true
     };
+    var pageDefaults = null;
 
     function safeParse(value) {
         try {
@@ -82,16 +80,19 @@
         return value.trim();
     }
 
-    function getPageConfig(pageKey) {
-        if (!pageKey) {
-            return {};
-        }
+    function emptyConfig() {
+        return {
+            imageUrl: "",
+            buttonUrl: "",
+            titleText: "",
+            descriptionText: "",
+            buttonText: ""
+        };
+    }
 
-        var allConfig = getAllConfig();
-        var config = allConfig[pageKey];
-
+    function normalizeConfig(config) {
         if (!config || typeof config !== "object") {
-            return {};
+            return emptyConfig();
         }
 
         return {
@@ -101,6 +102,46 @@
             descriptionText: sanitizeText(config.descriptionText || ""),
             buttonText: sanitizeText(config.buttonText || "")
         };
+    }
+
+    function hasAnyField(config) {
+        return Boolean(
+            config.imageUrl ||
+            config.buttonUrl ||
+            config.titleText ||
+            config.descriptionText ||
+            config.buttonText
+        );
+    }
+
+    function getPageConfig(pageKey) {
+        if (!pageKey) {
+            return emptyConfig();
+        }
+
+        var allConfig = getAllConfig();
+        return normalizeConfig(allConfig[pageKey]);
+    }
+
+    function capturePageDefaults() {
+        if (pageDefaults) {
+            return pageDefaults;
+        }
+
+        var button = document.querySelector("a.cta-button");
+        var image = document.querySelector(".icon-wrapper img");
+        var title = document.querySelector(".card h1");
+        var description = document.querySelector(".card p");
+
+        pageDefaults = {
+            imageUrl: image ? sanitizeUrl(image.getAttribute("src") || "") : "",
+            buttonUrl: button ? sanitizeUrl(button.getAttribute("href") || "") : "",
+            titleText: title ? sanitizeText(title.textContent || "") : "",
+            descriptionText: description ? sanitizeText(description.textContent || "") : "",
+            buttonText: button ? sanitizeText(button.textContent || "") : ""
+        };
+
+        return pageDefaults;
     }
 
     function applyImage(imageUrl) {
@@ -113,7 +154,7 @@
             return;
         }
 
-        var image = wrapper.querySelector("img[data-admin-editable='1']");
+        var image = wrapper.querySelector("img[data-admin-editable='1']") || wrapper.querySelector("img");
 
         if (!image) {
             wrapper.innerHTML = "";
@@ -186,38 +227,26 @@
         button.textContent = buttonText;
     }
 
-    function migrateStoredConfig() {
-        try {
-            if (localStorage.getItem(MIGRATION_KEY) === CURRENT_MIGRATION_ID) {
-                return;
-            }
+    function mergeWithDefaults(config) {
+        var defaults = capturePageDefaults();
+        var next = normalizeConfig(config);
 
-            var allConfig = getAllConfig();
-            if (allConfig.grupo5 && typeof allConfig.grupo5 === "object" && allConfig.grupo5.buttonUrl) {
-                allConfig.grupo5.buttonUrl = GRUPO5_BUTTON_URL;
-                setAllConfig(allConfig);
-            }
-
-            localStorage.setItem(MIGRATION_KEY, CURRENT_MIGRATION_ID);
-        } catch (err) {
-            return;
-        }
+        return {
+            imageUrl: next.imageUrl || defaults.imageUrl,
+            buttonUrl: next.buttonUrl || defaults.buttonUrl,
+            titleText: next.titleText || defaults.titleText,
+            descriptionText: next.descriptionText || defaults.descriptionText,
+            buttonText: next.buttonText || defaults.buttonText
+        };
     }
 
-    function applyCurrentPageConfig() {
-        migrateStoredConfig();
-
-        var key = getPageKeyFromPath(window.location.pathname);
-        if (!key) {
-            return;
-        }
-
-        var config = getPageConfig(key);
-        applyImage(config.imageUrl);
-        applyButtonLink(config.buttonUrl);
-        applyTitleText(config.titleText);
-        applyDescriptionText(config.descriptionText);
-        applyButtonText(config.buttonText);
+    function applyPageFields(config) {
+        var next = mergeWithDefaults(config);
+        applyImage(next.imageUrl);
+        applyButtonLink(next.buttonUrl);
+        applyTitleText(next.titleText);
+        applyDescriptionText(next.descriptionText);
+        applyButtonText(next.buttonText);
     }
 
     function updatePageConfig(pageKey, nextConfig) {
@@ -225,27 +254,16 @@
             return false;
         }
 
-        var imageUrl = sanitizeUrl(nextConfig.imageUrl || "");
-        var buttonUrl = sanitizeUrl(nextConfig.buttonUrl || "");
-        var titleText = sanitizeText(nextConfig.titleText || "");
-        var descriptionText = sanitizeText(nextConfig.descriptionText || "");
-        var buttonText = sanitizeText(nextConfig.buttonText || "");
+        var normalized = normalizeConfig(nextConfig);
         var allConfig = getAllConfig();
 
-        if (!imageUrl && !buttonUrl && !titleText && !descriptionText && !buttonText) {
+        if (!hasAnyField(normalized)) {
             delete allConfig[pageKey];
             setAllConfig(allConfig);
             return true;
         }
 
-        allConfig[pageKey] = {
-            imageUrl: imageUrl,
-            buttonUrl: buttonUrl,
-            titleText: titleText,
-            descriptionText: descriptionText,
-            buttonText: buttonText
-        };
-
+        allConfig[pageKey] = normalized;
         setAllConfig(allConfig);
         return true;
     }
@@ -261,6 +279,93 @@
         return true;
     }
 
+    function readJson(response) {
+        return response.json().then(function (data) {
+            if (!response.ok) {
+                throw new Error((data && data.error) ? data.error : "Falha na configuracao.");
+            }
+            return data;
+        });
+    }
+
+    function fetchServerPageConfig(pageKey) {
+        if (!KNOWN_PAGES[pageKey]) {
+            return Promise.resolve(emptyConfig());
+        }
+
+        return fetch("/api/page-config?page=" + encodeURIComponent(pageKey), {
+            method: "GET",
+            cache: "no-store"
+        })
+            .then(readJson)
+            .then(function (data) {
+                return normalizeConfig(data && data.config);
+            });
+    }
+
+    function saveServerPageConfig(pageKey, nextConfig) {
+        var normalized = normalizeConfig(nextConfig);
+
+        return fetch("/api/page-config", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                page: pageKey,
+                imageUrl: normalized.imageUrl,
+                buttonUrl: normalized.buttonUrl,
+                titleText: normalized.titleText,
+                descriptionText: normalized.descriptionText,
+                buttonText: normalized.buttonText
+            })
+        })
+            .then(readJson)
+            .then(function (data) {
+                var saved = normalizeConfig(data && data.config);
+                updatePageConfig(pageKey, saved);
+                return saved;
+            });
+    }
+
+    function clearServerPageConfig(pageKey) {
+        return fetch("/api/page-config?page=" + encodeURIComponent(pageKey), {
+            method: "DELETE",
+            credentials: "same-origin"
+        })
+            .then(readJson)
+            .then(function () {
+                clearPageConfig(pageKey);
+                return emptyConfig();
+            });
+    }
+
+    function applyCurrentPageConfig() {
+        var key = getPageKeyFromPath(window.location.pathname);
+        if (!key) {
+            return Promise.resolve();
+        }
+
+        capturePageDefaults();
+        applyPageFields(getPageConfig(key));
+
+        return fetchServerPageConfig(key)
+            .then(function (serverConfig) {
+                if (hasAnyField(serverConfig)) {
+                    updatePageConfig(key, serverConfig);
+                    applyPageFields(serverConfig);
+                    return;
+                }
+
+                clearPageConfig(key);
+                applyPageFields(emptyConfig());
+            })
+            .catch(function () {
+                return null;
+            });
+    }
+
     window.PresselAdminConfig = {
         storageKey: STORAGE_KEY,
         knownPages: Object.keys(KNOWN_PAGES),
@@ -269,7 +374,10 @@
         updatePageConfig: updatePageConfig,
         clearPageConfig: clearPageConfig,
         getAllConfig: getAllConfig,
-        applyCurrentPageConfig: applyCurrentPageConfig
+        applyCurrentPageConfig: applyCurrentPageConfig,
+        fetchServerPageConfig: fetchServerPageConfig,
+        saveServerPageConfig: saveServerPageConfig,
+        clearServerPageConfig: clearServerPageConfig
     };
 
     if (document.readyState === "loading") {
