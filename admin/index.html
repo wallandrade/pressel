@@ -160,10 +160,37 @@
         }
 
         .status {
-            min-height: 20px;
-            margin-top: 6px;
-            font-size: 13px;
-            color: #9bc6ae;
+            display: none;
+            margin-top: 14px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .status.is-visible {
+            display: block;
+        }
+
+        .status.is-ok {
+            background: #163d28;
+            border: 1px solid #2dd16f;
+            color: #b8ffd4;
+        }
+
+        .status.is-error {
+            background: #3d1a1a;
+            border: 1px solid #d74a4a;
+            color: #ffc9c9;
+        }
+
+        .status.is-busy {
+            background: #1a2a22;
+            border: 1px solid #3d5549;
+            color: #cde4d8;
         }
 
         .field-actions {
@@ -396,7 +423,7 @@
                 <button class="btn-logout" id="logoutBtn" type="button">Sair</button>
             </div>
 
-            <p class="status" id="status"></p>
+            <div class="status" id="status" role="status" aria-live="polite"></div>
 
             <p class="note">
                 Observacao: ao salvar, o link, a foto e os textos vao para o servidor. Qualquer pessoa que abrir a
@@ -485,9 +512,24 @@
                 pageSelect.appendChild(option);
             });
 
-            function setStatus(message, isError) {
+            function setStatus(message, isError, isBusy) {
+                status.className = "status";
                 status.textContent = message || "";
-                status.style.color = isError ? "#ff8f8f" : "#9bc6ae";
+
+                if (!message) {
+                    return;
+                }
+
+                status.classList.add("is-visible");
+                if (isError) {
+                    status.classList.add("is-error");
+                } else if (isBusy) {
+                    status.classList.add("is-busy");
+                } else {
+                    status.classList.add("is-ok");
+                }
+
+                status.scrollIntoView({ block: "nearest", behavior: "smooth" });
             }
 
             function setLoginStatus(message, isError) {
@@ -970,7 +1012,8 @@
 
             saveBtn.addEventListener("click", function () {
                 var pageKey = pageSelect.value;
-                setStatus("Salvando no servidor...", false);
+                var pageLabel = pages[pageKey] ? pages[pageKey].label : pageKey;
+                setStatus("Salvando no banco de dados...", false, true);
                 saveBtn.disabled = true;
 
                 configApi.saveServerPageConfig(pageKey, {
@@ -980,11 +1023,14 @@
                     descriptionText: descriptionTextInput.value,
                     buttonText: buttonTextInput.value
                 })
-                    .then(function () {
-                        setStatus("Alteracoes publicadas para " + pages[pageKey].label + ". O link novo ja vale na pagina.", false);
+                    .then(function (saved) {
+                        var link = (saved && saved.buttonUrl) || buttonInput.value.trim() || "(nenhum link)";
+                        var message = "Link do botao salvo no banco com sucesso.\nPagina: " + pageLabel + "\nLink: " + link;
+                        setStatus(message, false);
+                        window.alert(message);
                     })
                     .catch(function (error) {
-                        setStatus(error.message || "Nao foi possivel salvar no servidor.", true);
+                        setStatus(error.message || "Nao foi possivel salvar o link no banco.", true);
                     })
                     .then(function () {
                         saveBtn.disabled = false;
