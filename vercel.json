@@ -21,6 +21,14 @@
       "destination": "/importacao/index.html"
     },
     {
+      "source": "/mikeimports",
+      "destination": "/mikeimports/index.html"
+    },
+    {
+      "source": "/mikeimports/",
+      "destination": "/mikeimports/index.html"
+    },
+    {
       "source": "/admin",
       "destination": "/admin/index.html"
     },

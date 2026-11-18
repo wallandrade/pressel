@@ -10,7 +10,8 @@ const KNOWN_PAGES = {
     grupo7: true,
     importacao: true,
     whatsapp: true,
-    kaimportstelegram: true
+    kaimportstelegram: true,
+    mikeimports: true
 };
 const MAX_TEXT_LENGTH = 2000;
 const MAX_IMAGE_URL_LENGTH = 2000;

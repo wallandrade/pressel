@@ -8,7 +8,8 @@
         grupo7: true,
         importacao: true,
         whatsapp: true,
-        kaimportstelegram: true
+        kaimportstelegram: true,
+        mikeimports: true
     };
     var pageDefaults = null;
 
